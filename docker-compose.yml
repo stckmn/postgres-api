@@ -1,0 +1,100 @@
+# copied from https://github.com/LTMullineux
+###############################################
+# I want to make this able to spin up a complete
+# environment and also able to skip the postgres
+# container and connect to a running instance
+x-postgres-base: &postgres-base
+  image: postgis/postgis:16-3.4-alpine
+  restart: always
+  healthcheck:
+    test:
+      - CMD-SHELL
+      - pg_isready -U postgres
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
+x-app-base: &app-base
+  restart: always
+
+services:
+  postgres-test:
+    profiles: ["test"]
+    <<: *postgres-base
+    env_file: ".env.local"
+    environment:
+      - POSTGRES_HOST=postgres-test
+      - GUNICORN_WORKERS=1
+    networks:
+      - test
+
+  app-test:
+    profiles: ["test"]
+    <<: *app-base
+    entrypoint: ./scripts/entrypoint-test.sh
+    build:
+      context: .
+      dockerfile: /app/Dockerfile
+      args:
+        ENV: test
+    env_file: ".env.local"
+    environment:
+      - POSTGRES_DRIVERNAME=postgresql+asyncpg
+      - POSTGRES_HOST=postgres-test
+      - GUNICORN_WORKERS=1
+    volumes:
+      - ./:/code
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    networks:
+      - test
+
+  postgres-dev:
+    profiles: ["dev"]
+    <<: *postgres-base
+    env_file: ".env.local"
+    environment:
+      - POSTGRES_HOST=postgres-dev
+      - GUNICORN_WORKERS=4
+    ports:
+      - 5434:5432
+    expose:
+      - 5432
+    volumes:
+      - ./postgres/docker-entrypoint-initdb.d/:/docker-entrypoint-initdb.d/
+      - pgdata-dev:/var/lib/postgresql/data
+    networks:
+      - dev
+
+  app-dev:
+    profiles: ["dev"]
+    <<: *app-base
+    build:
+      context: .
+      dockerfile: ./app/Dockerfile
+    command:
+      bash -c "gunicorn app.api.server:app --log-level debug --reload --config=./app/api/gunicorn_config.py"
+      # bash -c "gunicorn -k uvicorn.workers.UvicornWorker --worker-tmp-dir /dev/shm --log-level debug app.api.server:app"
+    env_file: ".env.local"
+    environment:
+      - POSTGRES_HOST=postgres-dev
+      - GUNICORN_WORKERS=4
+    volumes:
+      - ./app:/app
+    ports:
+      - 8000:8000
+    expose:
+      - 8000
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    networks:
+      - dev
+
+volumes:
+  pgdata-dev:
+
+networks:
+  test:
+  dev:
