@@ -16,7 +16,7 @@ class Decline(Base):
     decline_id : Mapped[int] = mapped_column(primary_key=True)
     well_id : Mapped[str] = mapped_column(String(30), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
-        type_=TIMESTAMP(timezone=False),
+        type_=TIMESTAMP(timezone=True),
         default=datetime.now(timezone.utc))
     
     segments: Mapped[List["Segment"]] =  relationship(back_populates="decline")

@@ -29,7 +29,8 @@ async def create_decline(db: AsyncSession, decline: schemas.DeclineCreate):
          * commit the changes to the database
          * refresh your instance
     """
-    db_decline = declines.Decline(well_id=decline.well_id, created_at=decline.created_at)
+    # db_decline = declines.Decline(well_id=decline.well_id, created_at=decline.created_at)
+    db_decline = declines.Decline(well_id=decline.well_id)
     db.add(db_decline)
     await db.commit()
     # Adding ["segments"] to refresh prevents implicit IO Errors

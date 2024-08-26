@@ -28,11 +28,14 @@ class Segment(SegmentBase):
 class DeclineBase(BaseModel):
     # The following replaces orm_mode
     model_config = ConfigDict(from_attributes=True)
-    created_at: datetime
+
 
 class DeclineCreate(DeclineBase):
     well_id: str
+
     
 class Decline(DeclineCreate):
     decline_id: int
-    segments: list[Segment] = []        
+    created_at: datetime
+    segments: list[Segment] = []
+    
