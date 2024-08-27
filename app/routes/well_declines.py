@@ -38,5 +38,7 @@ async def create_segment_for_decline(
         decline_id: int,
         segment: schemas.SegmentCreate
         ):
-    segment = await crud.create_decline_segment(db=db, segment=segment, decline_id=decline_id)
-    return segment
+    result = await crud.create_decline_segment(db=db,
+                                                segment=segment,
+                                                decline_id=decline_id)
+    return result
